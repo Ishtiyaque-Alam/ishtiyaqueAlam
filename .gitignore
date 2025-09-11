@@ -1,0 +1,7 @@
+.venv/
+*.env
+venv/
+
+lib/
+__pycache__/
+code_analyzer.egg-info/
