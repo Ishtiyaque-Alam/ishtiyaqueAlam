@@ -84,7 +84,7 @@ All issues are of Low severity and have been filtered out for this report.
                 report_content = self._generate_basic_report(issues)
         
         # Write report to file
-        with open(self.output_file, 'w', encoding='utf-8') as f:
+        with open(self.output_file, 'w', encoding='utf-8', errors='ignore') as f:
             f.write(report_content)
         
         print(f"Report generated: {self.output_file}")
@@ -122,7 +122,7 @@ This report analyzes High and Medium severity issues found in the codebase using
                 response = model.generate_content(prompt)
                 report_content += response.text + "\n\n"
             
-            print("✓ LLM-powered report generated successfully")
+            print("  LLM-powered report generated successfully")
             return report_content
             
         except ImportError:
@@ -151,7 +151,7 @@ This report analyzes High and Medium severity issues found in the codebase.
         for i, issue in enumerate(issues, 1):
             report_content += self._analyze_issue_for_report(issue, i)
         
-        print("✓ Basic report generated successfully")
+        print("Basic report generated successfully")
         return report_content
     
     def _create_llm_prompt(self, issues_batch: List[Dict[str, Any]]) -> str:
@@ -164,13 +164,13 @@ These issues have been flagged by a static analysis step.
 1. Only analyze issues with severity = High or Medium. Ignore Low.
 2. For each issue:
    - Verify if it is indeed an issue. 
-     - if it is not an issue do nothing and move to the next issue.
+     - if it is not an issue do nothing and move to the next issue and do not include anything about them in your response.
    - If it is an issue:
      - Explain clearly **why it is an issue** (security, complexity, documentation, etc.).
      - Suggest **how to fix or improve it** (concrete recommendations and implementable).
      - Prioritize the issue by severity and impact (High first, then Medium).
 3. Output must be in **Markdown format**, using the following template:
-
+4.Keep it precise and short - max 200 words per issue.
 ### Format for Each Issue:
 File: <file path> (lines <start>-<end>)
 Severity: <High/Medium>

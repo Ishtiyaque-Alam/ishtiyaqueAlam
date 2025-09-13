@@ -1,4 +1,36 @@
+🔹 Install pyenv-win
+
+Install via PowerShell:
+```bash
+Invoke-WebRequest -UseBasicParsing -Uri https://pyenv-win.github.io/pyenv-win/install.ps1 | Invoke-Expression
+```
+
+(or follow pyenv-win docs
+)
+
+Restart PowerShell, then check:
+
+pyenv --version
+
+🔹 Install and set Python 3.11.9 for your project
+```bash
+pyenv install 3.11.9
+cd <your destination folder>
+pyenv local 3.11.9
+```
+
+
+This creates a .python-version file (you can commit it to your repo).
+
+Create & activate venv
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+```
 # Code Analysis Pipeline with Vector Search
+
 
 A comprehensive Python pipeline that parses code, detects issues, generates reports, stores results in vector databases, and enables dependency-aware semantic search.
 

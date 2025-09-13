@@ -3,11 +3,18 @@ from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Any, Optional
 import json
+from dotenv import load_dotenv
 import os
 
 
+load_dotenv()
+PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR")
+if not PERSIST_DIR:
+    PERSIST_DIR = "analysis_output/chroma_db"
+    print("[WARNING] CHROMA_PERSIST_DIR not set. Using default: analysis_output/chroma_db")
+
 class ChromaManager:
-    def __init__(self, persist_directory: str = "./chroma_db"):
+    def __init__(self, persist_directory: str = PERSIST_DIR):
         self.persist_directory = persist_directory
         os.makedirs(persist_directory, exist_ok=True)
         
@@ -113,7 +120,7 @@ class ChromaManager:
             metadatas=metadatas
         )
     
-    def search_code(self, query: str, n_results: int = 5, filters: Optional[Dict] = None) -> List[Dict[str, Any]]:
+    def search_code(self, query: str, n_results: int = 3, filters: Optional[Dict] = None) -> List[Dict[str, Any]]:
         """Search for code functions"""
         where_clause = {}
         if filters:

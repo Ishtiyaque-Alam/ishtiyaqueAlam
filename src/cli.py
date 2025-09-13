@@ -1,56 +1,81 @@
-import click
-import json
-from pathlib import Path
+import argparse
 from src.pipeline.analyzer import CodeAnalyzer
-from dotenv import load_dotenv
+from src.qa_agent.conv_bot import ConversationalBot
+from src.qa_agent.manage_chunks import TopicSwitchingRetriever
+from src.vector_db.chroma_manager import ChromaManager
+from src.qa_agent.debugger_agent import LLMClient, DebuggerAgent, Planner, DebugMain
+from src.github_analyser.github_analyzer import download_github_repo
+from rich.console import Console
+from rich.spinner import Spinner
+from rich.live import Live
+from rich.panel import Panel
+import time
 
-load_dotenv()
+def typing_animation(text, delay=0.005):
+    for char in text:
+        print(char, end='', flush=True)
+        time.sleep(delay)
+    print()
 
-@click.group()
 def main():
-    """Code Analysis Pipeline with Vector Search"""
-    pass
+    parser = argparse.ArgumentParser(prog="cq-agent", description="CQ Agent CLI")
+    subparsers = parser.add_subparsers(dest="command")
 
+    # Analyze command
+    analyze_parser = subparsers.add_parser("analyze", help="Analyze a local codebase")
+    analyze_parser.add_argument("path", help="Path to codebase")
 
-@main.command()
-@click.argument('target_path', type=click.Path(exists=True))
-@click.option('--output-dir', '-o', default='./analysis_output', 
-              help='Output directory for analysis results')
-def analyze(target_path, output_dir):
-    """Analyze code and generate reports"""
-    analyzer = CodeAnalyzer(output_dir)
-    
-    try:
-        # Run analysis
-        summary = analyzer.analyze(target_path)
-        
-        # Print summary
-        click.echo("\n" + "="*50)
-        click.echo("ANALYSIS SUMMARY")
-        click.echo("="*50)
-        click.echo(f"Files analyzed: {summary['files_analyzed']}")
-        click.echo(f"Functions found: {summary['total_functions']}")
-        click.echo(f"Total issues: {summary['total_issues']}")
-        click.echo(f"Dependencies: {summary['dependencies']}")
-        
-        click.echo("\nIssues by category:")
-        for category, count in summary['issues_by_category'].items():
-            click.echo(f"  {category}: {count}")
-        
-        click.echo("\nIssues by severity:")
-        for severity, count in summary['issues_by_severity'].items():
-            click.echo(f"  {severity}: {count}")
-        
-        click.echo(f"\nResults saved to: {output_dir}")
-        click.echo(f"Interactive graph: {output_dir}/graph.html")
-        click.echo(f"Summary report: {output_dir}/summary_report.html")
-    
-    except Exception as e:
-        click.echo(f"Error during analysis: {e}", err=True)
-        raise click.Abort()
+    # Chat command
+    chat_parser = subparsers.add_parser("chat", help="Chat with the QA bot")
 
+    # GitHub command
+    github_parser = subparsers.add_parser("github", help="Analyze a GitHub repo")
+    github_parser.add_argument("repo", help="GitHub repo in owner/repo format")
 
+    args = parser.parse_args()
 
+    # Initialize components
+    llm = LLMClient()
+    planner = Planner(llm)
+    chroma_manager = ChromaManager()
+    topic_retriever = TopicSwitchingRetriever(chroma_manager)
+    analyzer = DebugMain(llm)
+    debugger_agent = DebuggerAgent(planner, chroma_manager, analyzer)
+    bot = ConversationalBot(topic_retriever, debugger_agent, llm)
 
-if __name__ == '__main__':
+    if args.command == "analyze":
+        console = Console()
+        with Live(Spinner("dots", text="Analyzing..."), refresh_per_second=10, console=console):
+            code_analyzer = CodeAnalyzer(output_dir="./analysis_output")
+            summary = code_analyzer.analyze(args.path)
+        console.print("[bold green]Analysis Complete![/bold green]")
+        print(summary)
+
+    elif args.command == "chat":
+        console = Console()
+        console.print("[bold green]CQ Agent Chat. Type 'exit' to quit.[/bold green]")
+        while True:
+            user_query = console.input("[bold blue]You:[/bold blue] ")
+            if user_query.lower() in ["exit", "quit"]:
+                break
+            with Live(Spinner("dots", text="Thinking..."), refresh_per_second=10, console=console):
+                response = bot.handle_query(user_query)
+            console.print(Panel.fit(response, title="Bot", border_style="magenta"))
+            typing_animation(response)
+
+    elif args.command == "github":
+        console = Console()
+        with Live(Spinner("dots", text="Downloading and Analyzing GitHub repo..."), refresh_per_second=10, console=console):
+            owner, repo = args.repo.split("/")
+            download_github_repo(owner, repo, dest_folder="./downloaded_repo")
+            code_analyzer = CodeAnalyzer(output_dir="./analysis_output")
+            summary = code_analyzer.analyze("./downloaded_repo")
+        console.print("[bold green]GitHub Analysis Complete![/bold green]")
+        print(summary)
+
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
     main()
+    

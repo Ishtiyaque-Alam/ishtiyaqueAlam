@@ -1,0 +1,51 @@
+<div class="flex flex-col h-[70vh]">
+  <h2 class="text-xl font-semibold mb-4">Chat</h2>
+
+  <!-- Chat box -->
+  <div id="chat-box" class="flex-1 overflow-y-auto space-y-3 p-3 border rounded bg-gray-50">
+    <p class="text-gray-500">Start chatting with the bot...</p>
+  </div>
+
+  <!-- Input -->
+  <form id="chat-form" hx-post="/chat" hx-target="#chat-box" hx-swap="beforeend"
+        class="mt-3 flex items-center space-x-2">
+    <input id="chat-input" type="text" name="message" placeholder="Type your message..."
+           class="flex-1 border border-gray-300 rounded p-2 focus:ring focus:ring-blue-200"
+           autocomplete="off">
+    <button type="submit"
+            class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">
+      Send
+    </button>
+  </form>
+</div>
+
+<script>
+  // Wrap user messages before sending to backend
+  document.getElementById("chat-form").addEventListener("htmx:beforeRequest", function (evt) {
+    const input = document.getElementById("chat-input");
+    if (input.value.trim() !== "") {
+      const userBubble = `
+        <div class="flex justify-end">
+          <div class="bg-blue-600 text-white px-4 py-2 rounded-lg max-w-xs shadow">
+            ${input.value}
+          </div>
+        </div>`;
+      document.getElementById("chat-box").insertAdjacentHTML("beforeend", userBubble);
+      document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+    }
+  });
+
+  // Wrap bot messages after receiving from backend
+  document.getElementById("chat-box").addEventListener("htmx:afterSwap", function (evt) {
+    if (evt.detail.elt && evt.detail.xhr) {
+      const botMsg = evt.detail.elt.innerText || evt.detail.elt.textContent;
+      evt.detail.elt.innerHTML = `
+        <div class="flex justify-start">
+          <div class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg max-w-xs shadow">
+            ${botMsg}
+          </div>
+        </div>`;
+      document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+    }
+  });
+</script>

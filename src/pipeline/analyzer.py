@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from tqdm import tqdm
+from dataclasses import asdict
 
 from src.parsers.tree_sitter_parser import TreeSitterParser
 from src.analyzers.local_analyzer import LocalAnalyzer, Issue
@@ -34,7 +35,6 @@ class CodeAnalyzer:
     def analyze(self, target_path: str) -> Dict[str, Any]:
         """Main analysis pipeline"""
         print(f"Starting analysis of: {target_path}")
-        
         
         # Step 1: Parse code and extract functions
         print("Step 1: Parsing code...")
@@ -68,7 +68,7 @@ class CodeAnalyzer:
         print("Step 7: Initializing QA agent...")
         self.qa_agent = SemanticSearchAgent(self.chroma_manager, self.dependency_graph)
         
-        # Step 8: Generate reports
+        #Step 8: Generate reports
         print("Step 8: Generating reports...")
         self._generate_reports()
         
@@ -109,7 +109,7 @@ class CodeAnalyzer:
     
     def _build_dependency_graph(self) -> Any:
         """Build dependency graph and annotate with issues"""
-        # Build graph
+        # Build graph]
         graph = self.global_analyzer.build_dependency_graph(self.functions)
         
         # Combine all issues
@@ -151,9 +151,9 @@ class CodeAnalyzer:
         issues_path = self.output_dir / "issues.json"
         self._save_issues(issues_path)
         
-        # Save enriched report
-        report_path = self.output_dir / "report.json"
-        self._save_enriched_report(report_path)
+        # # Save enriched report
+        # report_path = self.output_dir / "report.json"
+        # self._save_enriched_report(report_path)
         
         # Markdown report will be generated in Step 9 with LLM
     
@@ -162,70 +162,28 @@ class CodeAnalyzer:
         issues_data = []
         
         for issue in self.issues + self.duplicates:
-            issue_dict = {
-                "file": issue.file,
-                "class": issue.class_name or "",
-                "function": issue.function,
-                "lines": issue.lines,
-                "category": issue.category,
-                "issue": issue.issue,
-                "severity": issue.severity,
-                "explanation": issue.explanation,
-                "suggestion": issue.suggestion
-            }
+
+            if isinstance(issue,Issue):
+                issue_dict = asdict(issue)
+            elif isinstance(issue, DuplicateFunction):
+
+                issue_dict = {
+                    "file": issue.file,
+                    "class": issue.class_name or "",
+                    "function": issue.function,
+                    "lines": issue.lines,
+                    "category": issue.category,
+                    "issue": issue.issue,
+                    "severity": issue.severity,
+                    "explanation": issue.explanation,
+                    "suggestion": issue.suggestion
+                }
+            else:
+                raise TypeError(f"Unsupported issue type: {type(issue)}")
             issues_data.append(issue_dict)
         
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(issues_data, f, indent=2, ensure_ascii=False)
-    
-    def _save_enriched_report(self, output_path: str):
-        """Save enriched report with additional context"""
-        # Convert issues to dictionaries
-        issues_data = []
-        for issue in self.issues + self.duplicates:
-            issue_dict = {
-                "file": issue.file,
-                "class": issue.class_name or "",
-                "function": issue.function,
-                "lines": issue.lines,
-                "category": issue.category,
-                "issue": issue.issue,
-                "severity": issue.severity,
-                "explanation": issue.explanation,
-                "suggestion": issue.suggestion
-            }
-            issues_data.append(issue_dict)
-        
-        # Convert dependency graph to serializable format
-        graph_data = {}
-        if self.dependency_graph:
-            # Convert node data to serializable format
-            node_data = {}
-            for node, data in self.dependency_graph.nodes(data=True):
-                serializable_data = {}
-                for key, value in data.items():
-                    if isinstance(value, (str, int, float, bool, list, dict)) or value is None:
-                        serializable_data[key] = value
-                    else:
-                        serializable_data[key] = str(value)
-                node_data[node] = serializable_data
-            
-            graph_data = {
-                "nodes": list(self.dependency_graph.nodes()),
-                "edges": list(self.dependency_graph.edges()),
-                "node_data": node_data
-            }
-        
-        report = {
-            "summary": self._get_summary(),
-            "functions": self.functions,
-            "issues": issues_data,
-            "dependency_graph": graph_data
-        }
-        
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(report, f, indent=2, ensure_ascii=False)
-    
     
     def _generate_markdown_report(self):
         """Generate Markdown report using the separate report generator"""
@@ -245,7 +203,7 @@ class CodeAnalyzer:
                 "-o", str(report_file)
             ], capture_output=True, text=True, check=True)
             
-            print("✓ Markdown report generated successfully")
+            print("  Markdown report generated successfully")
             
         except subprocess.CalledProcessError as e:
             print(f"Error generating report: {e}")

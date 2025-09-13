@@ -17,7 +17,7 @@ def test_imports():
         from src.visualization.graph_visualizer import GraphVisualizer
         from src.qa_agent.semantic_search import SemanticSearchAgent
         from src.pipeline.analyzer import CodeAnalyzer
-        print("✓ All modules imported successfully")
+        print("  All modules imported successfully")
         return True
     except ImportError as e:
         print(f"✗ Import error: {e}")
@@ -49,7 +49,7 @@ def hello_world():
                 assert func['function'] == 'hello_world'
                 assert func['has_docstring'] == True
                 assert 'print' in func['calls']
-                print("✓ Parser test passed")
+                print("  Parser test passed")
                 return True
             else:
                 print("✗ Parser test failed: No functions found")
@@ -90,7 +90,7 @@ def test_analyzer():
         # Should find eval usage issue
         eval_issues = [issue for issue in issues if 'eval' in issue.issue.lower()]
         if eval_issues:
-            print("✓ Analyzer test passed")
+            print("  Analyzer test passed")
             return True
         else:
             print("✗ Analyzer test failed: No eval issue detected")
@@ -107,7 +107,7 @@ def test_cli():
         result = subprocess.run([sys.executable, '-m', 'src.cli', '--help'], 
                               capture_output=True, text=True, timeout=10)
         if result.returncode == 0 and 'analyze' in result.stdout:
-            print("✓ CLI test passed")
+            print("  CLI test passed")
             return True
         else:
             print("✗ CLI test failed: CLI not working properly")

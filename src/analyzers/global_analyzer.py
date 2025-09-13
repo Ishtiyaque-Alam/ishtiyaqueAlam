@@ -58,24 +58,83 @@ class GlobalAnalyzer:
         return duplicates
     
     def build_dependency_graph(self, functions: List[Dict[str, Any]]) -> nx.DiGraph:
-        """Build dependency graph from imports and function calls"""
+        """
+        Build a comprehensive dependency graph:
+        - File nodes
+        - Imported module nodes
+        - Class nodes
+        - Method/function nodes
+        - Edges for imports, class membership, and function calls
+        """
         self.dependency_graph.clear()
-        
-        # Add all files as nodes
+
         files = set(func['file'] for func in functions)
+        # Add all files as nodes
         for file_path in files:
-            self.dependency_graph.add_node(file_path)
-        
-        # Add edges based on imports
+            self.dependency_graph.add_node(file_path, type='file')
+
+        # Add imported modules as nodes and edges
         for func in functions:
             file_path = func['file']
             imports = func.get('imports', [])
-            
             for import_stmt in imports:
                 imported_file = self._extract_imported_file(import_stmt, file_path)
-                if imported_file and imported_file in files:
-                    self.dependency_graph.add_edge(file_path, imported_file)
-        
+                if imported_file:
+                    self.dependency_graph.add_node(imported_file, type='imported_module')
+                    self.dependency_graph.add_edge(file_path, imported_file, type='imports')
+
+        # Add class and method/function nodes
+        for func in functions:
+            file_path = func['file']
+            class_name = func.get('class_name', '')
+            func_name = func['function']
+            # Class node
+            if class_name:
+                class_id = f"{file_path}::{class_name}"
+                self.dependency_graph.add_node(class_id, type='class')
+                self.dependency_graph.add_edge(file_path, class_id, type='contains')
+            # Method/function node
+            func_id = f"{file_path}::{class_name}::{func_name}" if class_name else f"{file_path}::{func_name}"
+            self.dependency_graph.add_node(func_id, type='function')
+            # Edge from class to method
+            if class_name:
+                self.dependency_graph.add_edge(class_id, func_id, type='has_method')
+            else:
+                self.dependency_graph.add_edge(file_path, func_id, type='contains_function')
+
+        # Add edges for function calls
+        func_id_map = {}
+        for func in functions:
+            class_name = func.get('class_name', '')
+            func_name = func['function']
+            file_path = func['file']
+            func_id = f"{file_path}::{class_name}::{func_name}" if class_name else f"{file_path}::{func_name}"
+            func_id_map[(file_path, class_name, func_name)] = func_id
+
+        for func in functions:
+            caller_file = func['file']
+            caller_class = func.get('class_name', '')
+            caller_name = func['function']
+            caller_id = func_id_map[(caller_file, caller_class, caller_name)]
+            for callee in func.get('calls', []):
+                # Try to find the callee function in the same file or any file
+                callee_candidates = [
+                    func_id_map.get((caller_file, callee.get('class_name', ''), callee['function'])) if isinstance(callee, dict) else func_id_map.get((caller_file, '', callee)),
+                ]
+                # If not found in same file, try all files
+                if not any(callee_candidates):
+                    for f in functions:
+                        if f['function'] == (callee['function'] if isinstance(callee, dict) else callee):
+                            callee_file = f['file']
+                            callee_class = f.get('class_name', '')
+                            callee_name = f['function']
+                            callee_id = func_id_map.get((callee_file, callee_class, callee_name))
+                            if callee_id:
+                                callee_candidates.append(callee_id)
+                for callee_id in callee_candidates:
+                    if callee_id:
+                        self.dependency_graph.add_edge(caller_id, callee_id, type='calls')
+
         return self.dependency_graph
     
     def annotate_graph_with_issues(self, issues: List[Any]) -> nx.DiGraph:

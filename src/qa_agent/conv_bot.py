@@ -1,10 +1,9 @@
 import numpy as np
 import logging
 from typing import Dict, Any, List
-
-from debugger_agent import LLMClient, DebuggerAgent
-from manage_chunks import TopicSwitchingRetriever, TopicNode
-
+from src.qa_agent.debugger_agent import LLMClient, DebuggerAgent,Planner,DebugMain
+from src.qa_agent.manage_chunks import TopicSwitchingRetriever, TopicNode
+from src.vector_db.chroma_manager import ChromaManager
 logger = logging.getLogger("conv_bot")
 
 
@@ -18,7 +17,8 @@ class ConversationalBot:
             "You are a helpful software assistant.\n\n"
             "Conversation history (this topic only):\n{stm}\n\n"
             "Code snippets:\n{snippets}\n\n"
-            "User query: {query}\n\n"
+            "User query: {query}\n\n" \
+            "keep your answers concise and to the point.Less than 250 words\n\n"
             "Answer:"
         )
 
@@ -60,3 +60,23 @@ class ConversationalBot:
             active_topic.memory.add_turn(user_query, answer)
 
         return answer
+    
+if __name__ == "__main__":
+    llm = LLMClient()
+    planner = Planner(llm)
+    chroma_manager = ChromaManager()  # Create only one instance
+    topic_retriever = TopicSwitchingRetriever(chroma_manager)
+    analyzer = DebugMain(llm)
+    debugger_agent = DebuggerAgent(planner, chroma_manager, analyzer)
+    bot = ConversationalBot(topic_retriever, debugger_agent, llm)
+
+    print("ConversationalBot CLI. Type 'exit' to quit.")
+    while True:
+        try:
+            user_query = input("You: ").strip()
+            if user_query.lower() in ("exit", "quit"): break
+            response = bot.handle_query(user_query)
+            print(f"Bot: {response}\n")
+        except (KeyboardInterrupt, EOFError):
+            print("\nExiting chat.")
+            break

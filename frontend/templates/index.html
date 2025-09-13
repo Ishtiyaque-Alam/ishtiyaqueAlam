@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FastAPI Web UI</title>
+  <!-- Tailwind & HTMX via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <!-- Header -->
+  <header class="bg-blue-600 text-white shadow-md p-4">
+    <h1 class="text-2xl font-semibold">FastAPI Debugger UI</h1>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="bg-white shadow flex space-x-4 p-2">
+    <button class="px-4 py-2 rounded hover:bg-gray-100"
+            hx-get="/github" hx-target="#content" hx-swap="innerHTML">
+      GitHub
+    </button>
+    <button class="px-4 py-2 rounded hover:bg-gray-100"
+            hx-get="/analyze" hx-target="#content" hx-swap="innerHTML">
+      Analyze
+    </button>
+    <button class="px-4 py-2 rounded hover:bg-gray-100"
+            hx-get="/chat" hx-target="#content" hx-swap="innerHTML">
+      Chat
+    </button>
+  </nav>
+
+  <!-- Dynamic content -->
+  <main class="p-4">
+    <div id="content" class="min-h-[70vh] bg-white rounded shadow p-4">
+      <p class="text-gray-500">Select a tab to begin.</p>
+    </div>
+  </main>
+</body>
+</html>
