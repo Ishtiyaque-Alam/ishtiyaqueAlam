@@ -18,12 +18,30 @@ class Issue:
 
 class LocalAnalyzer:
     def __init__(self):
+        # Base (Python-focused)
         self.security_patterns = {
             'eval_exec': re.compile(r'\b(eval|exec)\s*\('),
             'sql_injection': re.compile(r'["\'].*\+.*["\']', re.IGNORECASE),
             'weak_crypto': re.compile(r'\b(md5|sha1)\s*\('),
             'hardcoded_secrets': re.compile(r'(api[_-]?key|password|secret|token)\s*=\s*["\'][^"\']+["\']', re.IGNORECASE)
         }
+
+        # JavaScript-specific
+        self.security_patterns_js = {
+            'eval': re.compile(r'\beval\s*\('),
+            'function_constructor': re.compile(r'new\s+Function\s*\('),
+            'inner_html': re.compile(r'\.innerHTML\s*='),
+            'document_write': re.compile(r'document\.write\s*\('),
+        }
+
+        # Java-specific
+        self.security_patterns_java = {
+            'runtime_exec': re.compile(r'Runtime\.getRuntime\(\)\.exec\s*\('),
+            'weak_crypto': re.compile(r'MessageDigest\.getInstance\(\s*"(MD5|SHA1)"\s*\)'),
+            'jdbc_concat': re.compile(r'Statement\.execute(Query|Update)\s*\(.*\+".*"\)'),
+        }
+
+
     
     def analyze_function(self, func_data: Dict[str, Any]) -> List[Issue]:
         """Analyze a single function for issues"""
@@ -104,7 +122,36 @@ class LocalAnalyzer:
                 explanation='Hardcoded secrets in source code are security risks.',
                 suggestion='Use environment variables or secure secret management systems.'
             ))
-        
+                # --- JavaScript checks ---
+        for name, pattern in self.security_patterns_js.items():
+            if pattern.search(code):
+                issues.append(Issue(
+                    file=file_path,
+                    class_name=class_name,
+                    function=func_name,
+                    lines=[start_line, func_data['end_line']],
+                    category='security',
+                    issue=f'JS Security: {name}',
+                    severity='High',
+                    explanation=f'Potential {name} security issue detected.',
+                    suggestion='Avoid unsafe JS functions; use safer APIs.'
+                ))
+
+        # --- Java checks ---
+        for name, pattern in self.security_patterns_java.items():
+            if pattern.search(code):
+                issues.append(Issue(
+                    file=file_path,
+                    class_name=class_name,
+                    function=func_name,
+                    lines=[start_line, func_data['end_line']],
+                    category='security',
+                    issue=f'Java Security: {name}',
+                    severity='High',
+                    explanation=f'Potential {name} security issue detected.',
+                    suggestion='Refactor to safer Java APIs or libraries.'
+                ))
+
         return issues
     
     def _analyze_complexity(self, func_data: Dict[str, Any]) -> List[Issue]:
@@ -172,7 +219,6 @@ class LocalAnalyzer:
         return issues
     
     def _analyze_documentation(self, func_data: Dict[str, Any]) -> List[Issue]:
-        """Analyze documentation issues"""
         issues = []
         file_path = func_data['file']
         func_name = func_data['function']
@@ -180,23 +226,44 @@ class LocalAnalyzer:
         start_line = func_data['start_line']
         end_line = func_data['end_line']
         has_docstring = func_data['has_docstring']
-        
-        # Check if public function/class method is missing docstring
-        is_public = not func_name.startswith('_') or func_name.startswith('__') and func_name.endswith('__')
-        
-        if is_public and not has_docstring:
+
+        code = func_data.get('code', '')
+        file_ext = file_path.split('.')[-1].lower()
+
+        is_public = not func_name.startswith('_') or (
+            func_name.startswith('__') and func_name.endswith('__')
+        )
+
+        missing_docs = False
+
+        if file_ext == 'py':
+            # Python → rely on has_docstring
+            if is_public and not has_docstring:
+                missing_docs = True
+
+        elif file_ext == 'java':
+            # Java → check for /** ... */ above method
+            if not re.search(r'/\*\*.*\*/', code, re.DOTALL):
+                missing_docs = True
+
+        elif file_ext in ('js', 'jsx', 'ts', 'tsx'):
+            # JavaScript/TypeScript → check for /** ... */ above function
+            if not re.search(r'/\*\*.*\*/', code, re.DOTALL):
+                missing_docs = True
+
+        if missing_docs:
             issues.append(Issue(
                 file=file_path,
                 class_name=class_name,
                 function=func_name,
                 lines=[start_line, end_line],
                 category='documentation',
-                issue='Missing docstring',
+                issue='Missing documentation',
                 severity='Low',
-                explanation='Public function or method is missing documentation.',
-                suggestion='Add a docstring explaining the function\'s purpose, parameters, and return value.'
+                explanation=f'Function "{func_name}" is missing proper documentation.',
+                suggestion='Add a docstring (Python) or Javadoc/JSDoc (Java/JS).'
             ))
-        
+
         return issues
     
     def _calculate_cyclomatic_complexity(self, code: str) -> int:

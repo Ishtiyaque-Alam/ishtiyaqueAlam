@@ -239,22 +239,41 @@ class GlobalAnalyzer:
         return '\n'.join(normalized_lines)
     
     def _extract_imported_file(self, import_stmt: str, current_file: str) -> Optional[str]:
-        """Extract the file path from an import statement"""
+        """Extract the file path from an import statement (Python, Java, JS)"""
         import_stmt = import_stmt.strip()
-        
+
+        # ---------- Python ----------
         if import_stmt.startswith('from '):
-            # Handle 'from module import ...'
             parts = import_stmt.split()
             if len(parts) >= 2:
                 module_name = parts[1]
-                # Convert module name to file path
                 return module_name.replace('.', '/') + '.py'
-        
         elif import_stmt.startswith('import '):
-            # Handle 'import module'
             parts = import_stmt.split()
             if len(parts) >= 2:
-                module_name = parts[1].split('.')[0]  # Take only the first part
+                module_name = parts[1].split('.')[0]
                 return module_name + '.py'
-        
+
+        # ---------- Java ----------
+        if import_stmt.startswith('import '):
+            # e.g. import java.util.List;
+            parts = import_stmt.replace(';', '').split()
+            if len(parts) >= 2:
+                module_name = parts[1]
+                return module_name.replace('.', '/') + '.java'
+
+        # ---------- JavaScript ----------
+        if import_stmt.startswith('import '):
+            # e.g. import fs from 'fs';
+            if ' from ' in import_stmt:
+                module_name = import_stmt.split(' from ')[-1].strip("';\"")
+                return module_name + '.js'
+        if 'require(' in import_stmt:
+            # e.g. const fs = require('fs');
+            start = import_stmt.find("require(") + len("require(")
+            end = import_stmt.find(")", start)
+            module_name = import_stmt[start:end].strip("';\"")
+            return module_name + '.js'
+
         return None
+

@@ -48,6 +48,7 @@ class TreeSitterParser:
             '*~',
             '.DS_Store',
             'Thumbs.db',
+            '*LICENSE',
             # Test files (optional - can be configured)
             # 'test_*',
             # '*_test.py',
