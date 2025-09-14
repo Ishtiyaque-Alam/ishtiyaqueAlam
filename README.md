@@ -12,7 +12,7 @@ Restart PowerShell, then check:
 
 pyenv --version
 
-🔹 Install and set Python 3.11.9 for your project
+🔹 Install and set Python 3.11.9(or lower) for your project
 ```bash
 pyenv install 3.11.9
 cd <your destination folder>
@@ -39,9 +39,15 @@ A comprehensive Python pipeline that parses code, detects issues, generates repo
 - **Multi-language Support**: Python, JavaScript, Java parsing with Tree-sitter
 - **Comprehensive Issue Detection**: Security, complexity, documentation, and duplication analysis
 - **Vector Database Storage**: ChromaDB for semantic search of code and issues
-- **Dependency Graph Analysis**: NetworkX-based dependency visualization
-- **Interactive Visualizations**: HTML-based interactive graphs and reports
+- **Dependency Graph Analysis**: NetworkX-based dependency visualization With Issues
+- **Interactive Visualizations**: HTML-based interactive graphs and reports(DashBoard)
 - **Semantic Search**: Natural language queries with context-aware responses
+- **GitHub Analyser**: Analyze a Repository Directly from Web, by pasting the {Owner_name}/repository
+- **QA Bot**:Ask Questions about the codeBase with smart context switch to prevent unnecessary Retrievals
+- **Debugger Agent**- an AI agent based on Planner Design for comprehensive bebugging and modification in the codeBase-Use the  keyword 'think' in the Chat
+- **Interactive LightWeight UI**- Built using Jinja2 and XHTML and fastAPI to interact with the Bot in Web
+- **Comprehensive Report of Issues**- Prepares a markdown Report with the Issues, explanation and Fix
+- **CLI design**- Interactive CLI design build using typher and Click
 
 ## Installation
 
@@ -56,53 +62,49 @@ pip install -e .
 ```
 
 ## Usage
-
-### Command Line Interface
-
-#### Analyze Code
+To Analyze a folder
 ```bash
-qa-agent analyze <path_to_code>
+python -m src.cli analyze <Repo_location>
 ```
-
-Options:
-- `--output-dir, -o`: Output directory for results (default: ./analysis_output)
-
-### Example Usage
-
-1. **Analyze a Python project**:
+To Chat with the Bot
 ```bash
-qa-agent analyze ./my_project
+python -m src.cli chat
 ```
-
-2. **Analyze with custom output directory**:
+To analyze a Repository on Github
 ```bash
-qa-agent analyze ./my_project -o ./reports
+python -m src.cli github <Repo Owner/Repo Name>
 ```
-
-3. **Analyze current directory**:
-```bash
-qa-agent analyze .
-```
-
 ## Output Files
 
-The analysis generates several output files:
+The analysis generates several output files(Go to Analysis_output):
 
 - `chunks.json`: Parsed function-level code chunks with metadata
 - `issues.json`: Detected issues with details
 - `report.json`: Enriched report with full context
 - `graph.html`: Interactive dependency graph visualization
-- `summary_report.html`: Summary report with statistics
+- `summary_report.html`: Summary report with statistics(DashBoard)
 - `chroma_db/`: Vector database storage for semantic search
-
+- `Report.md/`: Final Generated Report With Issues and Fix and Location
+e
 ## Issue Categories
 
 ### Security Issues
+Python
 - `eval`/`exec` usage
 - SQL injection risks
 - Weak cryptographic hashes (MD5, SHA1)
-- Hardcoded secrets
+- Hardcoded secrets(api_key, password, token, etc.)
 
+JavaScript
+
+- Use of eval()
+- Use of new Function()
+- Dangerous DOM writes (.innerHTML =, document.write())
+
+Java
+- Use of Runtime.getRuntime().exec()
+- Weak cryptography (MessageDigest.getInstance("MD5"/"SHA1"))
+- SQL injection via JDBC string concatenation (Statement.execute("..."+var))
 ### Complexity Issues
 - Function length (>200 lines)
 - Cyclomatic complexity (>10)
@@ -111,6 +113,10 @@ The analysis generates several output files:
 ### Documentation Issues
 - Missing docstrings for public functions
 - Incomplete documentation
+Java
+- Function with no Javadoc (/** ... */).
+JavaScript
+- Function with no JSDoc (/** ... */).
 
 ### Duplication Issues
 - Duplicate functions across files
@@ -145,17 +151,7 @@ The analyzer automatically excludes common non-source files and directories to f
 
 You can customize exclusions in several ways:
 
-1. **Command line options:**
-```bash
-# Exclude specific patterns
-qa-agent analyze ./project -e "*.pyc" -e "*.log"
 
-# Exclude specific directories  
-qa-agent analyze ./project -d "build" -d "tests"
-
-# Include test files
-qa-agent analyze ./project --include-tests
-```
 
 2. **Programmatic configuration:**
 ```python
@@ -173,14 +169,17 @@ See `exclusion_config_example.py` for detailed examples.
 ## Architecture
 
 ```
+frontend               #Interactive UI to interact from a WebUI
+Main.py                #Contains the FastAPI to run the surver
 src/
 ├── parsers/           # Tree-sitter based code parsing
 ├── analyzers/         # Local and global issue analysis
 ├── vector_db/         # ChromaDB integration
-├── visualization/     # Graph and report generation
-├── qa_agent/         # Semantic search and Q&A
+├── visualization/     # Graph and report generation With issues annotated 
+├── qa_agent/         # Semantic search and Q&A with Smart Debugger Agent Support
 ├── pipeline/         # Main analysis orchestrator
-└── cli.py           # Command-line interface
+└── github_analyser   # To analyise a repository directly from the github 
+
 ```
 
 ## Dependencies
@@ -190,42 +189,11 @@ src/
 - **sentence-transformers**: Text embeddings (all-MiniLM-L6-v4)
 - **networkx**: Dependency graph analysis
 - **pyvis**: Interactive graph visualization
-- **click**: CLI interface
-
-## Examples
-
-### Security Analysis
-```bash
-qa-agent query "What security vulnerabilities exist in the authentication code?"
-```
-
-### Performance Analysis
-```bash
-qa-agent query "Which functions have high complexity and need refactoring?"
-```
-
-### Code Search
-```bash
-qa-agent query "How does user authentication work?"
-```
-
-### Duplication Detection
-```bash
-qa-agent query "Are there any duplicate database query functions?"
-```
-
-## Interactive Mode
-
-The interactive mode allows for continuous querying:
-
-```bash
-qa-agent analyze ./project --interactive
-```
-
-This will:
-1. Run the full analysis
-2. Start an interactive session where you can ask questions
-3. Provide context-aware answers with code references
+- **click  and Typher**: CLI interface
+- **FastAPI**: For interaction on WebUI
+- **JINJA2, XHTML, TailWind CSS**: For frontend Design
+- **LangChain**: For Agentic AI design
+- **Google genai**: For LLM support - Gemini-2.5-flash
 
 ## Customization
 
