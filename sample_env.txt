@@ -1,0 +1,3 @@
+GEMINI_API_KEY=Paste your API key
+CHROMA_PERSIST_DIR=analysis_output\\chroma_db
+EMBEDDING_MODEL=all-MiniLM-L6-v2

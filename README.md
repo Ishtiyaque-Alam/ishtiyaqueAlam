@@ -60,7 +60,7 @@ pip install -r requirements.txt
 ```bash
 pip install -e .
 ```
-
+3. Get Your Gemini API key and and paste it in sample_env file and change its name to .env
 ## Usage
 To Analyze a folder
 ```bash
