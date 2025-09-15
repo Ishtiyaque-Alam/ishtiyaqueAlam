@@ -41,7 +41,7 @@ def main():
     topic_retriever = TopicSwitchingRetriever(chroma_manager)
     analyzer = DebugMain(llm)
     debugger_agent = DebuggerAgent(planner, chroma_manager, analyzer)
-    bot = ConversationalBot(topic_retriever, debugger_agent, llm)
+    bot = ConversationalBot( debugger_agent=debugger_agent,chroma_manager=chroma_manager)
 
     if args.command == "analyze":
         console = Console()

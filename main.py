@@ -2,6 +2,9 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+import shutil
+import pathlib
+from fastapi.responses import FileResponse
 
 from src.pipeline.analyzer import CodeAnalyzer
 from src.qa_agent.conv_bot import ConversationalBot
@@ -41,6 +44,16 @@ async def analyze_tab(request: Request):
 async def chat_tab(request: Request):
     return templates.TemplateResponse("chat.html", {"request": request})
 
+@app.get("/download_page", response_class=HTMLResponse)
+def download_page(request: Request):
+    return templates.TemplateResponse("download.html", {
+        "request": request,
+        "title": "Download Project Results",
+        "heading": "Project Results",
+        "description": "Click below to download all output files as a ZIP folder. Use this after running the Analyze or GitHub functions.",
+        "download_url": "/download",
+        "button_text": "Download Results"
+    })
 # ---------------- API Endpoints ----------------
 @app.post("/analyze", response_class=HTMLResponse)
 async def analyze_repo(repo_url: str = Form(...)):
@@ -76,6 +89,14 @@ async def analyze_github(owner: str = Form(...), repo: str = Form(...)):
       <p class="text-gray-800">{summary}</p>
     </div>
     """
+@app.get("/download")
+def download_analysis():
+    analysis_path = pathlib.Path("./analysis_output")
+    zip_path = pathlib.Path("./analysis_output.zip")
+    if zip_path.exists():
+        zip_path.unlink()  # Remove existing zip file
+    shutil.make_archive(analysis_path.stem, 'zip', analysis_path)
+    return FileResponse(path=zip_path, filename="analysis_output.zip", media_type='application/zip')
 
 # ---------------- Run ----------------
 if __name__ == "__main__":
