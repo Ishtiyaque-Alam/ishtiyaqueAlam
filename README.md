@@ -74,6 +74,10 @@ To analyze a Repository on Github
 ```bash
 python -m src.cli github <Repo Owner/Repo Name>
 ```
+To run the FastAPI and to interact using UI
+```bash
+uvicorn main:app --reload
+```
 ## Output Files
 
 The analysis generates several output files(Go to Analysis_output):
