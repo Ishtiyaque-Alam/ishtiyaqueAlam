@@ -8,3 +8,4 @@ __pycache__/
 code_analyzer.egg-info/
 analysis_output/
 chat_memory/
+*analysis_output.zip
