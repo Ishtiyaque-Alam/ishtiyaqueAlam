@@ -8,7 +8,6 @@ from fastapi.responses import FileResponse
 
 from src.pipeline.analyzer import CodeAnalyzer
 from src.qa_agent.conv_bot import ConversationalBot
-from src.qa_agent.manage_chunks import TopicSwitchingRetriever
 from src.qa_agent.debugger_agent import LLMClient, DebuggerAgent, Planner, DebugMain
 from src.vector_db.chroma_manager import ChromaManager
 
@@ -22,10 +21,9 @@ templates = Jinja2Templates(directory="frontend/templates")
 llm = LLMClient()
 planner = Planner(llm)
 chroma_manager=ChromaManager()
-topic_retriever = TopicSwitchingRetriever(chroma_manager)
 analyzer = DebugMain(llm)
-debugger_agent = DebuggerAgent(planner, topic_retriever, analyzer)
-bot = ConversationalBot(topic_retriever, debugger_agent, llm)
+debugger_agent = DebuggerAgent(planner=planner,analyzer=analyzer,retriever=chroma_manager)
+bot = ConversationalBot(debugger_agent=debugger_agent)
 
 # ---------------- UI Routes ----------------
 @app.get("/", response_class=HTMLResponse)

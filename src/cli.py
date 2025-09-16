@@ -1,7 +1,6 @@
 import argparse
 from src.pipeline.analyzer import CodeAnalyzer
 from src.qa_agent.conv_bot import ConversationalBot
-from src.qa_agent.manage_chunks import TopicSwitchingRetriever
 from src.vector_db.chroma_manager import ChromaManager
 from src.qa_agent.debugger_agent import LLMClient, DebuggerAgent, Planner, DebugMain
 from src.github_analyser.github_analyzer import download_github_repo
@@ -38,9 +37,8 @@ def main():
     llm = LLMClient()
     planner = Planner(llm)
     chroma_manager = ChromaManager()
-    topic_retriever = TopicSwitchingRetriever(chroma_manager)
     analyzer = DebugMain(llm)
-    debugger_agent = DebuggerAgent(planner, chroma_manager, analyzer)
+    debugger_agent = DebuggerAgent(planner=planner, retriever=chroma_manager, analyzer=analyzer)
     bot = ConversationalBot( debugger_agent=debugger_agent,chroma_manager=chroma_manager)
 
     if args.command == "analyze":
