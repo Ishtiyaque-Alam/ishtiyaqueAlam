@@ -71,7 +71,8 @@ async def analyze_repo(repo_url: str = Form(...)):
 @app.post("/chat", response_class=HTMLResponse)
 async def chat(message: str = Form(...)):
     response = bot.handle_query(message)
-    return response  # HTMX script in chat.html will wrap it in a bubble
+    formatted_response = response.replace("\n", "<br>")
+    return formatted_response  # HTMX script in chat.html will wrap it in a bubble
 
 @app.post("/github", response_class=HTMLResponse)
 async def analyze_github(owner: str = Form(...), repo: str = Form(...)):

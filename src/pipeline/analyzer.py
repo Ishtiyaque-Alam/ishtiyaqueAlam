@@ -22,7 +22,7 @@ class CodeAnalyzer:
         self.parser = TreeSitterParser()
         self.local_analyzer = LocalAnalyzer()
         self.global_analyzer = GlobalAnalyzer()
-        self.chroma_manager = ChromaManager(persist_directory=str(self.output_dir / "chroma_db"))
+        self.chroma_manager = ChromaManager(persist_directory=str(self.output_dir / "chroma_db"),intialize=True)
         self.visualizer = GraphVisualizer()
         
         # Results storage

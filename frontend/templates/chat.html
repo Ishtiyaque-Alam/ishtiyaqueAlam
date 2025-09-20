@@ -20,32 +20,26 @@
 </div>
 
 <script>
-  // Wrap user messages before sending to backend
-  document.getElementById("chat-form").addEventListener("htmx:beforeRequest", function (evt) {
-    const input = document.getElementById("chat-input");
-    if (input.value.trim() !== "") {
-      const userBubble = `
-        <div class="flex justify-end">
-          <div class="bg-blue-600 text-white px-4 py-2 rounded-lg max-w-xs shadow">
-            ${input.value}
-          </div>
-        </div>`;
-      document.getElementById("chat-box").insertAdjacentHTML("beforeend", userBubble);
-      document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-    }
+  const chatBox = document.getElementById("chat-box");
+  const chatInput = document.getElementById("chat-input");
+
+  // Insert user message before sending
+  document.getElementById("chat-form").addEventListener("htmx:beforeRequest", function () {
+    if (chatInput.value.trim() === "") return;
+    
+    const userBubble = `
+      <div class="flex justify-end">
+        <div class="bg-blue-600 text-white px-4 py-2 rounded-lg max-w-xs shadow">
+          ${chatInput.value}
+        </div>
+      </div>`;
+    
+    chatBox.insertAdjacentHTML("beforeend", userBubble);
+    chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // Wrap bot messages after receiving from backend
-  document.getElementById("chat-box").addEventListener("htmx:afterSwap", function (evt) {
-    if (evt.detail.elt && evt.detail.xhr) {
-      const botMsg = evt.detail.elt.innerText || evt.detail.elt.textContent;
-      evt.detail.elt.innerHTML = `
-        <div class="flex justify-start">
-          <div class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg max-w-xs shadow">
-            ${botMsg}
-          </div>
-        </div>`;
-      document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-    }
+  // Scroll down after receiving bot message
+  chatBox.addEventListener("htmx:afterSwap", function () {
+    chatBox.scrollTop = chatBox.scrollHeight;
   });
 </script>

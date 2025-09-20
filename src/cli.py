@@ -10,11 +10,14 @@ from rich.live import Live
 from rich.panel import Panel
 import time
 
-def typing_animation(text, delay=0.005):
-    for char in text:
-        print(char, end='', flush=True)
-        time.sleep(delay)
-    print()
+def typing_panel(text: str, console: Console, title="Bot", delay: float = 0.03):
+    typed = ""
+    with Live(Panel(typed, title=title, border_style="magenta"), refresh_per_second=20, console=console) as live:
+        for char in text:
+            typed += char
+            live.update(Panel(typed, title=title, border_style="magenta"))
+            time.sleep(delay)
+
 
 def main():
     parser = argparse.ArgumentParser(prog="cq-agent", description="CQ Agent CLI")
@@ -58,8 +61,7 @@ def main():
                 break
             with Live(Spinner("dots", text="Thinking..."), refresh_per_second=10, console=console):
                 response = bot.handle_query(user_query)
-            console.print(Panel.fit(response, title="Bot", border_style="magenta"))
-            typing_animation(response)
+            typing_panel(response,console=console)
 
     elif args.command == "github":
         console = Console()

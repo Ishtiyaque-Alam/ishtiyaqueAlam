@@ -69,13 +69,10 @@ class ConversationalBot:
         prompt = f"""
         You are a reasoning and planning assistant.
 
-Inputs:
-- Query: {query}
-- Last chats: {last_chats}
 
 Your task:
 1. Decide if the last chats provide enough information to fully and literally answer the current query.
-   - "Enough" means the answer can be derived using the chats or by using your external knowledge.
+   - "Enough" means the answer can be derived using the chats strictly.
 2. If enough:
    - Provide the answer directly.
    - Output only valid JSON:
@@ -90,6 +87,9 @@ Your task:
        "enough": false,
        "new_query": "<rewritten query>"
      }}
+Inputs:
+- Query: {query}
+- Last chats: {last_chats}
         """
         resp = self.planner.generate_content(
             prompt, generation_config={"response_mime_type": "application/json"}
@@ -147,7 +147,8 @@ Your task:
         Context (from DB):
         {context_text}
 
-        Answer the query concisely and accurately.
+        If the Context is related to the query only then Answer the query concisely and accurately 
+        and mention the context used in newlines.
         """
         resp = self.engineer.generate_content(prompt)
         return resp.text.strip()

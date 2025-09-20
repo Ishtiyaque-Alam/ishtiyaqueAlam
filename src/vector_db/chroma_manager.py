@@ -1,6 +1,6 @@
 import chromadb
 from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
+from chromadb.utils import embedding_functions
 from typing import List, Dict, Any, Optional
 import json
 from dotenv import load_dotenv
@@ -8,13 +8,14 @@ import os
 
 
 load_dotenv()
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR")
 if not PERSIST_DIR:
     PERSIST_DIR = "analysis_output/chroma_db"
     print("[WARNING] CHROMA_PERSIST_DIR not set. Using default: analysis_output/chroma_db")
 
 class ChromaManager:
-    def __init__(self, persist_directory: str = PERSIST_DIR):
+    def __init__(self, persist_directory: str = PERSIST_DIR,intialize: bool=False):
         self.persist_directory = persist_directory
         os.makedirs(persist_directory, exist_ok=True)
         
@@ -24,18 +25,24 @@ class ChromaManager:
             settings=Settings(anonymized_telemetry=False)
         )
         
-        # Initialize sentence transformer model
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
         
+        self.embedder=embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL)
         # Initialize collections
+        if intialize:
+            self.client.delete_collection("code_functions")
+            self.client.delete_collection("code_issues")
+
+            
         self.code_collection = self.client.get_or_create_collection(
             name="code_functions",
-            metadata={"description": "Function-level code embeddings"}
+            metadata={"description": "Function-level code embeddings"},
+            embedding_function=self.embedder
         )
         
         self.issues_collection = self.client.get_or_create_collection(
             name="code_issues",
-            metadata={"description": "Code issue embeddings"}
+            metadata={"description": "Code issue embeddings"},
+            embedding_function=self.embedder
         )
     
     def add_code_functions(self, functions: List[Dict[str, Any]]):
