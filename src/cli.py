@@ -10,7 +10,7 @@ from rich.live import Live
 from rich.panel import Panel
 import time
 
-def typing_panel(text: str, console: Console, title="Bot", delay: float = 0.03):
+def typing_panel(text: str, console: Console, title="Bot", delay: float = 0.003):
     typed = ""
     with Live(Panel(typed, title=title, border_style="magenta"), refresh_per_second=20, console=console) as live:
         for char in text:

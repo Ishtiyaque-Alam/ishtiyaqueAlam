@@ -44,7 +44,7 @@ class ConversationalBot:
         # Embeddings + VectorStore (chat memory)
         self.embeddings = HuggingFaceEmbeddings(model_name=embedding_model)
         self.vectorstore = Chroma(
-            persist_directory=persist_dir, embedding_function=self.embeddings
+            embedding_function=self.embeddings
         )
 
         self.confidence_threshold = confidence_threshold
@@ -54,8 +54,16 @@ class ConversationalBot:
     # -------------------------
     # Store turns into VDB
     # -------------------------
-    def save_turn_to_vdb(self, role: str, content: str):
+    def save_turn_to_vdb(self, role: str, content: str=None,docs: List[Document]=None):
         doc_id = str(uuid4())
+        if role == "context":
+            for doc in docs:
+                self.vectorstore.add_texts(
+                    texts=[doc.page_content],
+                    ids=[str(uuid4())],
+                    metadatas=[{"role": role}]
+                )
+            return
         self.vectorstore.add_texts(
             texts=[f"{role}: {content}"],
             ids=[doc_id],
@@ -164,8 +172,8 @@ Inputs:
             if not debug_result:
                 return "DebuggerAgent could not resolve the issue."
             answer = f"DebuggerAgent says:\nAnalysis: {debug_result['analysis']}\nFix: {debug_result['fix']}"
-            self.save_turn_to_vdb("user", user_query)
-            self.save_turn_to_vdb("bot", answer)
+            self.save_turn_to_vdb(role="user",content= user_query)
+            self.save_turn_to_vdb(role="bot",content= answer)
             return answer
 
         # Use planner with last few chats from memory
@@ -190,8 +198,9 @@ Inputs:
             answer = self.engineer_answer(new_query, chat_docs, context_docs)
 
         # Save to chat memory VDB
-        self.save_turn_to_vdb("user", user_query)
-        self.save_turn_to_vdb("bot", answer)
+        self.save_turn_to_vdb(role="user",content= user_query)
+        self.save_turn_to_vdb(role="bot",content= answer)
+        self.save_turn_to_vdb(role="context", docs=context_docs)
         return answer
 
 
