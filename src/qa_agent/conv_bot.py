@@ -198,9 +198,9 @@ Inputs:
             answer = self.engineer_answer(new_query, chat_docs, context_docs)
 
         # Save to chat memory VDB
+        self.save_turn_to_vdb(role="context", docs=context_docs)
         self.save_turn_to_vdb(role="user",content= user_query)
         self.save_turn_to_vdb(role="bot",content= answer)
-        self.save_turn_to_vdb(role="context", docs=context_docs)
         return answer
 
 
