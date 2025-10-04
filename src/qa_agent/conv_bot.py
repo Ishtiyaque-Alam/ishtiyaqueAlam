@@ -30,7 +30,7 @@ class ConversationalBot:
         planner_model: str = "gemini-2.5-flash",
         engineer_model: str = "gemini-2.5-flash",
         embedding_model: str = EMBEDDINGS,
-        confidence_threshold: float = 0.6,
+        confidence_threshold: float = 0.5,
         debugger_agent: DebuggerAgent = None,
         chroma_manager: ChromaManager = None,
     ):
@@ -50,7 +50,7 @@ class ConversationalBot:
         self.confidence_threshold = confidence_threshold
         self.debugger_agent = debugger_agent
         self.chroma_manager = chroma_manager
-
+        self.chat_window = []
     # -------------------------
     # Store turns into VDB
     # -------------------------
@@ -75,29 +75,62 @@ class ConversationalBot:
     # -------------------------
     def planner_restructure(self, query: str, last_chats: List[str]) -> dict:
         prompt = f"""
-        You are a reasoning and planning assistant.
+You are an expert AI assistant specializing in **technical query analysis** and **code conversation contextualization**.
 
+Your goal is to determine if a user's query about a **programming topic, code snippet, or error message** can be answered directly using the `last_chats` history. If not, you will rewrite the query into a standalone, searchable technical question.
 
-Your task:
-1. Decide if the last chats provide enough information to fully and literally answer the current query.
-   - "Enough" means the answer can be derived using the chats strictly.
-2. If enough:
-   - Provide the answer directly.
-   - Output only valid JSON:
-     {{
-       "enough": true,
-       "response": "<your answer>"
-     }}
-3. If not enough:
-   - Rewrite the query into a clear, self-contained question that can be used for retrieval in a vector database.
-   - Output only valid JSON:
-     {{
-       "enough": false,
-       "new_query": "<rewritten query>"
-     }}
-Inputs:
-- Query: {query}
-- Last chats: {last_chats}
+Follow these rules:
+1.  Analyze the `query` in the context of the `last_chats`, paying close attention to any code snippets, libraries, or error messages mentioned.
+2.  **If the chat history provides enough context to directly answer the query**, output a JSON object with `"enough": true` and the complete technical answer in the `"response"` field.
+3.  **If the query is a follow-up that requires external information not present in the chats**, rewrite it into a clear, self-contained technical question. Output a JSON object with `"enough": false` and the new question in the `"new_query"` field.
+4.  Your entire output must be a single, valid JSON object and nothing else.
+
+---
+**Examples:**
+
+**Example 1: The answer can be found in the provided code snippet.**
+* **last_chats:** "User: How can I create a simple web server in Python? \n Assistant: You can use the `http.server` module. Here's a basic example: \n```python\nimport http.server\nimport socketserver\n\nPORT = 8000\nHandler = http.server.SimpleHTTPRequestHandler\n\nwith socketserver.TCPServer(('', PORT), Handler) as httpd:\n    print('serving at port', PORT)\n    httpd.serve_forever()\n```"
+* **query:** "What does the `Handler` variable do in that code?"
+* **OUTPUT:**
+    ```json
+    {{
+      "enough": true,
+      "response": "In that Python code, the `Handler` variable is assigned `http.server.SimpleHTTPRequestHandler`. This is a built-in class that handles incoming HTTP requests by serving files from the current directory. When the server receives a request, this handler is responsible for processing it."
+    }}
+    ```
+
+**Example 2: The query needs to be rewritten for a more specific technical search.**
+* **last_chats:** "User: What's a Python decorator? \n Assistant: A decorator is a design pattern in Python that allows a user to add new functionality to an existing object without modifying its structure. Decorators are usually called before the definition of a function you want to decorate."
+* **query:** "How would I use one for logging?"
+* **OUTPUT:**
+    ```json
+    {{
+      "enough": false,
+      "new_query": "How do I create and use a Python decorator for logging function calls and their arguments?"
+    }}
+    ```
+
+**Example 3: The query is already a self-contained technical question.**
+* **last_chats:** ""
+* **query:** "How do you reverse a string in JavaScript?"
+* **OUTPUT:**
+    ```json
+    {{
+      "enough": true,
+      "response": "You can reverse a string in JavaScript by chaining the `split()`, `reverse()`, and `join()` methods. For example: `const reversed = 'hello'.split('').reverse().join('');` would result in `'olleh'`."
+    }}
+    ```
+---
+
+**Current Task:**
+
+* **last_chats:** {last_chats}
+* **query:** {query}
+* **OUTPUT:**
+```json
+{{
+  // Your JSON output here
+}}
         """
         resp = self.planner.generate_content(
             prompt, generation_config={"response_mime_type": "application/json"}
@@ -176,15 +209,15 @@ Inputs:
             self.save_turn_to_vdb(role="bot",content= answer)
             return answer
 
-        # Use planner with last few chats from memory
-        chat_history_docs, _ = self.retrieve_from_chat_memory(user_query)
-        last_chats = [doc.page_content for doc in chat_history_docs[-5:]]
+        last_chats=[f"user:{turn['user']}\nbot:{turn['bot']}\ncontext:{turn['context']}" for turn in self.chat_window]
         planner_result = self.planner_restructure(user_query, last_chats)
-
         if planner_result.get("enough"):
             answer = planner_result["response"]
+            # logging.info("Planner provided direct answer.")#for testing
         else:
             new_query = planner_result["new_query"]
+            # logging.info("Planner indicated not enough info Given to the Engineer LLM.")#for testing
+            # logging.info(f"Planner restructured query: {new_query}")#for testing 
 
             # Step 1: Try retrieving from chat memory
             chat_docs, confidence = self.retrieve_from_chat_memory(new_query)
@@ -201,6 +234,9 @@ Inputs:
         self.save_turn_to_vdb(role="context", docs=context_docs)
         self.save_turn_to_vdb(role="user",content= user_query)
         self.save_turn_to_vdb(role="bot",content= answer)
+        self.chat_window.append({"user": user_query, "bot": answer,"context": context_docs})
+        if len(self.chat_window) > 5:
+            self.chat_window.pop(0)
         return answer
 
 
